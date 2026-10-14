@@ -5,6 +5,10 @@
 import AudioToolbox
 import BuzzkillCore
 
+// Redirected stdout (launchd logs, the smoke test) is block-buffered, and
+// SIGTERM never flushes it.
+setvbuf(stdout, nil, _IOLBF, 0)
+
 do {
     let unit = try makeSilenceUnit()
     let status = AudioOutputUnitStart(unit)
