@@ -19,7 +19,7 @@ October 2026 there is no fix from Apple or Allen & Heath.
 permanently open by rendering silence through a CoreAudio DefaultOutput unit.
 Because the output stream never tears down, the bug never triggers.
 
-- Output-only: no microphone access, no permission prompts
+- Output-only: never records audio
 - Follows the system default output device automatically
 - Renders zeros; negligible CPU, truly silent
 
@@ -31,6 +31,10 @@ brew services start buzzkill
 ```
 
 The service starts at login and restarts if it exits.
+
+macOS may ask to allow microphone access for `buzzkilld` when the service first
+starts, even though it only plays output (seen with a duplex USB interface).
+Choose Don't Allow; silence keeps playing either way.
 
 ## Uninstall
 

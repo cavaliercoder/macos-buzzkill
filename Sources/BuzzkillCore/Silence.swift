@@ -32,9 +32,10 @@ public enum SilenceUnitError: Error, CustomStringConvertible {
 }
 
 /// Creates and initializes (but does not start) a DefaultOutput audio unit
-/// with the silence render callback installed. Output-only: never touches
-/// input/microphone, so no TCC prompt. The DefaultOutput unit follows the
-/// system default output device automatically.
+/// with the silence render callback installed. Output-only: never reads
+/// input. Creating the unit can still trigger a microphone prompt (seen with a
+/// duplex USB interface), and denying it doesn't affect output. The
+/// DefaultOutput unit follows the system default output device automatically.
 public func makeSilenceUnit() throws -> AudioUnit {
     var desc = AudioComponentDescription(
         componentType: kAudioUnitType_Output,
