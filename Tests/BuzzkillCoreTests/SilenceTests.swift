@@ -1,8 +1,8 @@
 import AudioToolbox
-import XCTest
+import Testing
 @testable import BuzzkillCore
 
-final class SilenceTests: XCTestCase {
+struct SilenceTests {
     private func makeDirtyBufferList(buffers: Int, bytesPerBuffer: Int)
         -> (UnsafeMutableAudioBufferListPointer, [UnsafeMutableRawPointer]) {
         let abl = AudioBufferList.allocate(maximumBuffers: buffers)
@@ -20,36 +20,36 @@ final class SilenceTests: XCTestCase {
         return (abl, allocations)
     }
 
-    private func assertAllZero(_ data: UnsafeMutableRawPointer, _ count: Int,
-                               file: StaticString = #filePath, line: UInt = #line) {
+    private func expectAllZero(_ data: UnsafeMutableRawPointer, _ count: Int,
+                               sourceLocation: SourceLocation = #_sourceLocation) {
         let bytes = data.bindMemory(to: UInt8.self, capacity: count)
         for i in 0..<count {
             if bytes[i] != 0 {
-                XCTFail("byte \(i) is \(bytes[i]), expected 0", file: file, line: line)
+                Issue.record("byte \(i) is \(bytes[i]), expected 0", sourceLocation: sourceLocation)
                 return
             }
         }
     }
 
-    func testZeroBuffersZeroesSingleBuffer() {
+    @Test func zeroBuffersZeroesSingleBuffer() {
         let (abl, allocations) = makeDirtyBufferList(buffers: 1, bytesPerBuffer: 4096)
         defer { allocations.forEach { $0.deallocate() }; free(abl.unsafeMutablePointer) }
 
         zeroBuffers(abl.unsafeMutablePointer)
-        assertAllZero(allocations[0], 4096)
+        expectAllZero(allocations[0], 4096)
     }
 
-    func testZeroBuffersZeroesAllBuffersInList() {
+    @Test func zeroBuffersZeroesAllBuffersInList() {
         let (abl, allocations) = makeDirtyBufferList(buffers: 3, bytesPerBuffer: 512)
         defer { allocations.forEach { $0.deallocate() }; free(abl.unsafeMutablePointer) }
 
         zeroBuffers(abl.unsafeMutablePointer)
         for data in allocations {
-            assertAllZero(data, 512)
+            expectAllZero(data, 512)
         }
     }
 
-    func testZeroBuffersHandlesNilListAndNilData() {
+    @Test func zeroBuffersHandlesNilListAndNilData() {
         zeroBuffers(nil) // must not crash
 
         let abl = AudioBufferList.allocate(maximumBuffers: 1)
@@ -58,7 +58,7 @@ final class SilenceTests: XCTestCase {
         zeroBuffers(abl.unsafeMutablePointer) // must not crash
     }
 
-    func testRenderCallbackReturnsNoErrAndZeroes() {
+    @Test func renderCallbackReturnsNoErrAndZeroes() {
         let (abl, allocations) = makeDirtyBufferList(buffers: 1, bytesPerBuffer: 256)
         defer { allocations.forEach { $0.deallocate() }; free(abl.unsafeMutablePointer) }
 
@@ -69,27 +69,17 @@ final class SilenceTests: XCTestCase {
             abl.unsafeMutablePointer
         )
 
-        XCTAssertEqual(status, noErr)
-        assertAllZero(allocations[0], 256)
+        #expect(status == noErr)
+        expectAllZero(allocations[0], 256)
     }
 
     /// Integration: the DefaultOutput unit can be created and initialized with
     /// the callback installed. Does not start the unit, so it passes on
     /// headless CI runners and never produces audio or permission prompts.
-    func testMakeSilenceUnitInitializes() throws {
+    /// SetRenderCallback is write-only, so a successful return is the check.
+    @Test func makeSilenceUnitInitializes() throws {
         let unit = try makeSilenceUnit()
-        defer {
-            AudioUnitUninitialize(unit)
-            AudioComponentInstanceDispose(unit)
-        }
-
-        var callback = AURenderCallbackStruct()
-        var size = UInt32(MemoryLayout<AURenderCallbackStruct>.size)
-        let status = AudioUnitGetProperty(
-            unit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, 0,
-            &callback, &size
-        )
-        XCTAssertEqual(status, noErr)
-        XCTAssertNotNil(callback.inputProc)
+        AudioUnitUninitialize(unit)
+        AudioComponentInstanceDispose(unit)
     }
 }
