@@ -44,7 +44,9 @@ brew uninstall buzzkill
 Requires the Xcode Command Line Tools (`xcode-select --install`):
 
 ```sh
-make
+make            # swift build -c release
+make test       # unit tests
+make smoke      # end-to-end smoke test (starts and stops the daemon)
 sudo make install   # installs /usr/local/bin/buzzkilld
 ```
 

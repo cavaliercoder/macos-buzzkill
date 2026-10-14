@@ -1,2 +1,3 @@
-buzzkilld
+.build/
 .DS_Store
+.vscode/

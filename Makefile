@@ -1,12 +1,19 @@
 PREFIX ?= /usr/local
+BIN = .build/release/buzzkilld
 
-buzzkilld: buzzkilld.swift
-	swiftc -O $< -o $@
+.PHONY: build test smoke install clean
+build:
+	swift build -c release
 
-.PHONY: install clean
-install: buzzkilld
+test:
+	swift test
+
+smoke:
+	scripts/smoke-test.sh
+
+install: build
 	install -d $(PREFIX)/bin
-	install -m 755 buzzkilld $(PREFIX)/bin/buzzkilld
+	install -m 755 $(BIN) $(PREFIX)/bin/buzzkilld
 
 clean:
-	rm -f buzzkilld
+	rm -rf .build
